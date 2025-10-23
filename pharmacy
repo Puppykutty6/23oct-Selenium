@@ -1,63 +1,67 @@
 package pages;
 
-import java.util.Map;
 import org.openqa.selenium.*;
-import org.openqa.selenium.interactions.Actions;
-import org.openqa.selenium.support.ui.Select;
+import org.testng.Assert;
+import coreUtilities.utils.CommonEvents;
+import coreUtilities.utils.FileOperations;
 
-public class pharmacy_Pages {
+import java.util.Map;
+
+public class Pharmacy_Pages {
 
     WebDriver driver;
+    CommonEvents events;
+    Map<String, String> testData;
 
-    public pharmacy_Pages(WebDriver driver) {
+    By username = By.id("username");
+    By password = By.id("password");
+    By signInBtn = By.xpath("//button[text()='Sign In']");
+    By pharmacyModule = By.xpath("//a[contains(text(),'Pharmacy')]");
+    By orderTab = By.xpath("//a[contains(text(),'Order')]");
+    By supplierTab = By.xpath("//a[contains(text(),'Supplier')]");
+
+    public Pharmacy_Pages(WebDriver driver) {
         this.driver = driver;
+        this.events = new CommonEvents(driver);
     }
 
-    public boolean loginToHealthAppByGivenValidCredetial(Map<String, String> data) throws Exception {
-        try {
-            driver.get(data.get("url"));
-            driver.findElement(By.id("UserName")).sendKeys(data.get("username"));
-            driver.findElement(By.id("Password")).sendKeys(data.get("password"));
-            driver.findElement(By.xpath("//button[text()='Sign In']")).click();
-            Thread.sleep(3000);
-            return driver.getTitle().contains("Danphe");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+    public void loadTestData(String path) {
+        testData = FileOperations.readExcelData(path, "Pharmacy");
     }
 
-    public String verifyTitleAndURLOfTheHomePage() {
-        String title = driver.getTitle();
-        String url = driver.getCurrentUrl();
-        System.out.println("🏠 Title: " + title);
-        System.out.println("🌐 URL: " + url);
-        return title + " | " + url;
+    public void login(String url) {
+        driver.get(url);
+        events.enterText(username, "admin");
+        events.enterText(password, "pass123");
+        events.clickElement(signInBtn);
+    }
+
+    public void verifyHomePage() {
+        Assert.assertEquals(driver.getTitle(), "DanpheHealth", "Title mismatch!");
+        Assert.assertTrue(driver.getCurrentUrl().contains("/Home/Index#"), "URL mismatch!");
     }
 
     public void openPharmacyModule() {
-        driver.findElement(By.xpath("//a[contains(text(),'Pharmacy')]")).click();
-        System.out.println("🧭 Navigated to Pharmacy module");
+        events.clickElement(pharmacyModule);
+        Assert.assertTrue(driver.getCurrentUrl().contains("Pharmacy/Dashboard"), "Pharmacy module not opened!");
     }
 
-    public void highlightSubModules() throws Exception {
-        WebElement subModule = driver.findElement(By.xpath("//a[contains(text(),'Orders')]"));
-        new Actions(driver).moveToElement(subModule).perform();
-        Thread.sleep(1000);
-        System.out.println("✨ Highlighted Orders submodule");
+    public void verifySubModules() {
+        String[] subModules = {"Order", "Supplier", "Report", "Setting", "Store", "Supplier Ledger", "Substore Request/Dispatch"};
+        for (String sub : subModules) {
+            Assert.assertTrue(driver.getPageSource().contains(sub), sub + " not visible!");
+        }
     }
 
-    public void openOrderTab() {
-        driver.findElement(By.xpath("//a[contains(text(),'Orders')]")).click();
-        System.out.println("📦 Opened Orders tab");
+    public void verifyOrderSection() {
+        events.clickElement(orderTab);
+        Assert.assertTrue(events.isElementDisplayed(By.xpath("//a[contains(text(),'Purchase Order')]")));
+        Assert.assertTrue(events.isElementDisplayed(By.xpath("//a[contains(text(),'Goods Receipt')]")));
+        Assert.assertTrue(events.isElementDisplayed(By.xpath("//input[@placeholder='Search']")));
     }
 
-    public void addNewGoodReceipt(Map<String, String> data) throws Exception {
-        driver.findElement(By.xpath("//button[contains(text(),'Add Goods Receipt')]")).click();
-        new Select(driver.findElement(By.id("Supplier"))).selectByVisibleText(data.get("supplier"));
-        driver.findElement(By.id("InvoiceNo")).sendKeys(data.get("invoice"));
-        driver.findElement(By.xpath("//button[text()='Save']")).click();
-        Thread.sleep(2000);
-        System.out.println("✅ Added new goods receipt");
+    public void verifySupplierNavigation() {
+        events.clickElement(supplierTab);
+        Assert.assertTrue(driver.getCurrentUrl().contains("Supplier"), "Supplier tab not opened!");
     }
 }
