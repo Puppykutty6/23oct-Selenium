@@ -20,27 +20,99 @@ import com.codoid.products.exception.FilloException;
 import com.codoid.products.fillo.Connection;
 import com.codoid.products.fillo.Fillo;
 
-public class FileOperations 
-{
+/**
+ * Utility class for file-related operations like reading Excel, JSON, or property files.
+ */
+public class FileOperations {
+	
 	public JSONParser jsonParser;
 	public JSONObject jsonObject;
 	public Fillo fillo;
 	public Connection connection;
 	public Properties properties;
-	
+
 	/**
-     * This method is useful to read the excel sheet based on the Filename and sheet name. It'll return the values for the respective
-     * sheet in {@link Map} where the first column name as a key and the value as per the value entered in econd column.
-     * @param excelFilePath - {@link String} excel sheet location
-     * @param sheetName - {@link String} Sheet name to read the excel
-     * @return {@link Map}
-     * @throws Exception
-     */
-	public Map<String, String> readExcelPOI(String excelFilePath, String sheetName) throws FilloException
-	{
-	   
-	    return null;
+	 * Reads an Excel sheet and returns its data as a key-value {@link Map}.
+	 * The first column will be treated as the key and the second as the value.
+	 *
+	 * Example:
+	 * | Key          | Value          |
+	 * |--------------|----------------|
+	 * | username     | admin          |
+	 * | password     | pass123        |
+	 *
+	 * @param excelFilePath - path to the Excel file (e.g., "testdata/Expected_Data.xlsx")
+	 * @param sheetName     - name of the sheet to read (e.g., "Pharmacy")
+	 * @return Map<String, String> containing key-value pairs
+	 * @throws FilloException
+	 */
+	public Map<String, String> readExcelPOI(String excelFilePath, String sheetName) throws FilloException {
+		Map<String, String> dataMap = new HashMap<>();
+
+		try (FileInputStream fis = new FileInputStream(excelFilePath);
+			 Workbook workbook = new XSSFWorkbook(fis)) {
+
+			Sheet sheet = workbook.getSheet(sheetName);
+			if (sheet == null) {
+				throw new IllegalArgumentException("Sheet '" + sheetName + "' not found in Excel file.");
+			}
+
+			Iterator<Row> rows = sheet.iterator();
+			while (rows.hasNext()) {
+				Row row = rows.next();
+				if (row.getRowNum() == 0) {
+					continue; // skip header if any
+				}
+
+				Cell keyCell = row.getCell(0);
+				Cell valueCell = row.getCell(1);
+
+				if (keyCell == null || valueCell == null)
+					continue;
+
+				String key = getCellValueAsString(keyCell);
+				String value = getCellValueAsString(valueCell);
+				dataMap.put(key, value);
+			}
+		} catch (IOException e) {
+			System.err.println("Error reading Excel file: " + e.getMessage());
+		}
+
+		return dataMap;
 	}
 
-	
+	/**
+	 * Converts any Excel cell value into a clean String representation.
+	 */
+	private String getCellValueAsString(Cell cell) {
+		switch (cell.getCellType()) {
+			case STRING:
+				return cell.getStringCellValue().trim();
+
+			case NUMERIC:
+				if (DateUtil.isCellDateFormatted(cell)) {
+					return cell.getDateCellValue().toString();
+				} else {
+					double numericValue = cell.getNumericCellValue();
+					if (numericValue == (long) numericValue)
+						return String.valueOf((long) numericValue);
+					else
+						return String.valueOf(numericValue);
+				}
+
+			case BOOLEAN:
+				return String.valueOf(cell.getBooleanCellValue());
+
+			case FORMULA:
+				try {
+					return cell.getStringCellValue();
+				} catch (IllegalStateException e) {
+					return String.valueOf(cell.getNumericCellValue());
+				}
+
+			case BLANK:
+			default:
+				return "";
+		}
+	}
 }
