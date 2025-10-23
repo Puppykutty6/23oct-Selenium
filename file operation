@@ -29,8 +29,10 @@ public class FileOperations
 	public Properties properties;
 	
 	/**
-     * This method is useful to read the excel sheet based on the Filename and sheet name. It'll return the values for the respective
-     * sheet in {@link Map} where the first column name as a key and the value as per the value entered in econd column.
+     * This method is useful to read the excel sheet based on the Filename and sheet name.
+     * It'll return the values for the respective sheet in {@link Map} where the first column name as a key
+     * and the value as per the value entered in second column.
+     * 
      * @param excelFilePath - {@link String} excel sheet location
      * @param sheetName - {@link String} Sheet name to read the excel
      * @return {@link Map}
@@ -38,10 +40,83 @@ public class FileOperations
      */
 	public Map<String, String> readExcelPOI(String excelFilePath, String sheetName) throws FilloException
 	{
-	   
-	    return null;
+	    Map<String, String> map = new HashMap<>();
+	    FileInputStream fis = null;
+	    Workbook workbook = null;
+	    try {
+	        fis = new FileInputStream(excelFilePath);
+	        workbook = new XSSFWorkbook(fis);
+	        Sheet sheet = workbook.getSheet(sheetName);
+	        if (sheet == null) {
+	            // try first sheet as fallback
+	            sheet = workbook.getSheetAt(0);
+	        }
+	        
+	        Iterator<Row> rowIterator = sheet.iterator();
+	        while (rowIterator.hasNext()) {
+	            Row row = rowIterator.next();
+	            // skip empty rows or rows without at least 2 cells
+	            Cell keyCell = row.getCell(0);
+	            Cell valueCell = row.getCell(1);
+	            if (keyCell == null) continue;
+	            
+	            String key = getCellAsString(keyCell).trim();
+	            String value = "";
+	            if (valueCell != null)
+	                value = getCellAsString(valueCell).trim();
+	            
+	            if (!key.isEmpty()) {
+	                map.put(key, value);
+	            }
+	        }
+	    } catch (IOException e) {
+	        throw new RuntimeException("Error reading excel file: " + excelFilePath, e);
+	    } finally {
+	        try {
+	            if (workbook != null) workbook.close();
+	            if (fis != null) fis.close();
+	        } catch (IOException e) {
+	            // ignore
+	        }
+	    }
+	    return map;
+	}
+	
+	private String getCellAsString(Cell c) {
+	    if (c == null) return "";
+	    switch (c.getCellType()) {
+	    case STRING:
+	        return c.getStringCellValue();
+	    case NUMERIC:
+	        if (DateUtil.isCellDateFormatted(c)) {
+	            return c.getDateCellValue().toString();
+	        } else {
+	            // remove .0 for integer-looking numbers
+	            double d = c.getNumericCellValue();
+	            if (d == Math.floor(d)) {
+	                long l = (long) d;
+	                return Long.toString(l);
+	            } else {
+	                return Double.toString(d);
+	            }
+	        }
+	    case BOOLEAN:
+	        return Boolean.toString(c.getBooleanCellValue());
+	    case FORMULA:
+	        try {
+	            return c.getStringCellValue();
+	        } catch (Exception e) {
+	            try {
+	                double d = c.getNumericCellValue();
+	                return Double.toString(d);
+	            } catch (Exception ex) {
+	                return "";
+	            }
+	        }
+	    case BLANK:
+	    default:
+	        return "";
+	    }
 	}
 
-	
 }
-
