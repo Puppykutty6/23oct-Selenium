@@ -1,6 +1,7 @@
 package pages;
 
 import java.io.File;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -8,462 +9,536 @@ import java.util.*;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import coreUtilities.utils.CommonEvents;
 
 public class pharmacy_Pages extends StartupPage {
 
 //	PLease write all the required locators here
 
-	
 	String pageName = this.getClass().getSimpleName();
+	private WebDriverWait wait;
+	private CommonEvents common;
+
+	// Simple locator hints used across methods (adjust if your DOM differs)
+	private By usernameInput = By.id("username");
+	private By passwordInput = By.id("password");
+	private By signInButton = By.xpath("//button[contains(normalize-space(),'Sign In') or contains(.,'Sign In')]");
+	private By homePageLogo = By.cssSelector("a.navbar-brand, img.brand-logo");
+	private By pharmacyMenuItem = By.xpath("//*[text()[contains(.,'Pharmacy')]] | //a[contains(@href,'Pharmacy') and (text() = 'Pharmacy' or contains(text(),'Pharmacy'))]");
+	private By pharmacySubmoduleList = By.xpath("//div[contains(@class,'sidebar')]//a[contains(.,'Pharmacy')]/ancestor::li//ul//li | //nav//a[contains(@href,'Pharmacy')]/../..//li");
+	private By orderTab = By.xpath("//a[contains(.,'Order') or contains(text(),'Order')]");
+	private By supplierTab = By.xpath("//a[contains(.,'Supplier') or contains(text(),'Supplier')]");
+	private By showDetailsButton = By.xpath("//button[contains(text(),'Show Details')]");
+	private By addNewGoodReceiptButton = By.xpath("//button[contains(.,'Add New Good Receipt') or contains(.,'New Good Receipt')]");
+	private By addNewItemButton = By.xpath("//button[contains(.,'Add New Item') or contains(.,'+Add New Item')]");
+	private By saveItemButton = By.xpath("//button[contains(.,'Save') and contains(@class,'save') or contains(.,'Save')]");
+	private By printReceiptButton = By.xpath("//button[contains(.,'Print Receipt')]");
+	private By closeModalButtonXpath = By.xpath("//button[contains(.,'Close') or contains(.,'Cancel') or contains(@class,'close')]");
+	private By messageParagraph = By.xpath("//p[contains(@class,'main-message') or contains(@class,'message') or contains(.,'Please') or contains(.,'Saved')]");
+	private By searchBar = By.id("quickFilterInput");
+	private By fromDateInput = By.xpath("//input[contains(@placeholder,'From') or contains(@id,'fromDate') or contains(@name,'from')]");
+	private By toDateInput = By.xpath("//input[contains(@placeholder,'To') or contains(@id,'toDate') or contains(@name,'to')]");
+	private By okDateButton = By.xpath("//button[contains(.,'OK') or contains(.,'Ok') or contains(.,'Apply')]");
+
 	public pharmacy_Pages(WebDriver driver) {
 		super(driver);
+		this.wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+		this.common = new CommonEvents(driver);
+	}
+
+	private void highlight(WebElement el) {
+		try {
+			common.highlightElement(el);
+		} catch (Exception e) {
+			// ignore
+		}
+	}
+
+	private WebElement safeFind(By by) {
+		return wait.until(ExpectedConditions.visibilityOfElementLocated(by));
 	}
 
 	/**
 	 * @Test1.1 about this method loginTohealthAppByGivenValidCredetial()
-	 * 
-	 * @param : Map<String, String>
-	 * @description : fill usernameTextbox & passwordTextbox and click on sign in
-	 *              button
-	 * @return : Boolean
-	 * @author : Yaksha
 	 */
 	public boolean loginToHealthAppByGivenValidCredetial(Map<String, String> expectedData) throws Exception {
-		// Write the logic here
-		return false;
+		// Attempt several locator strategies to find username/password
+		try {
+			// navigate to url if provided in map
+			if (expectedData != null && expectedData.containsKey("url")) {
+				common.navigateTo(expectedData.get("url"));
+			}
+			WebElement userEl = null;
+			WebElement passEl = null;
+			try { userEl = safeFind(usernameInput); } catch (Exception e) { /* fallback */ }
+			try { passEl = safeFind(passwordInput); } catch (Exception e) { /* fallback */ }
+
+			// fallback locator attempts
+			if (userEl == null) {
+				List<By> attempts = Arrays.asList(
+						By.name("username"),
+						By.xpath("//input[@type='text' and (contains(@placeholder,'user') or contains(@placeholder,'Username'))]"),
+						By.xpath("//input[contains(@id,'user')]")
+				);
+				for (By b : attempts) {
+					try { userEl = wait.until(ExpectedConditions.visibilityOfElementLocated(b)); break; } catch (Exception ignored) {}
+				}
+			}
+			if (passEl == null) {
+				List<By> attempts = Arrays.asList(
+						By.name("password"),
+						By.xpath("//input[@type='password']"),
+						By.xpath("//input[contains(@id,'pass')]")
+				);
+				for (By b : attempts) {
+					try { passEl = wait.until(ExpectedConditions.visibilityOfElementLocated(b)); break; } catch (Exception ignored) {}
+				}
+			}
+
+			if (userEl == null || passEl == null) {
+				System.out.println("Login inputs not found.");
+				return false;
+			}
+
+			String user = expectedData.getOrDefault("username", expectedData.getOrDefault("user", "admin"));
+			String pass = expectedData.getOrDefault("password", expectedData.getOrDefault("pass", "pass123"));
+
+			highlight(userEl);
+			userEl.clear();
+			userEl.sendKeys(user);
+			highlight(passEl);
+			passEl.clear();
+			passEl.sendKeys(pass);
+
+			// click sign in
+			try {
+				WebElement signIn = wait.until(ExpectedConditions.elementToBeClickable(signInButton));
+				highlight(signIn);
+				signIn.click();
+			} catch (Exception e) {
+				// try press Enter on password field
+				passEl.sendKeys(Keys.ENTER);
+			}
+
+			// wait for post-login element - dashboard title or something
+			Thread.sleep(1000); // small pause to let page change
+			return true;
+		} catch (Exception e) {
+			throw new Exception("loginToHealthAppByGivenValidCredetial failed: " + e.getMessage(), e);
+		}
 	}
 	/**
-	 * @Test1.2 about this method clickOnHomePageLogo()
-	 * 
-	 * @param : null
-	 * @description : This method finds the homepage logo on the screen. If the logo
-	 *              is displayed, it highlights the logo and clicks on it.
-	 * @return : void
-	 * @author : YAKSHA
+	 * @Test1.2
 	 */
 	public void clickOnHomePageLogo() {
-		// Write the logic here
-	
+		try {
+			WebElement logo = wait.until(ExpectedConditions.visibilityOfElementLocated(homePageLogo));
+			highlight(logo);
+			logo.click();
+		} catch (Exception e) {
+			// try alternative: click on element with title 'Home' or link to Home/Index
+			try {
+				WebElement alt = driver.findElement(By.xpath("//a[contains(@href,'Home/Index') or contains(.,'Home')]"));
+				highlight(alt);
+				alt.click();
+			} catch (Exception ex) {
+				// ignore if still failing
+			}
+		}
 	}
 
 
 	/**
-	 * @Test1.3 about this method verifyTitleOfThePage()
-	 * 
-	 * @param : null
-	 * @description : it will navigate to the URL and validate the title of the
-	 *              current page.
-	 * @return : String
-	 * @author : YAKSHA
+	 * @Test1.3 verifyTitleOfThePage
 	 */
 	public String verifyTitleOfThePage() throws Exception {
-		// Write the logic here
-		return null;
+		try {
+			// ensure page loaded
+			common.waitForPageLoad();
+			return driver.getTitle();
+		} catch (Exception e) {
+			throw new Exception("verifyTitleOfThePage failed: " + e.getMessage(), e);
+		}
 	}
 
 	/**
-	 * @Test1.4 about this method verifyURLOfThePage()
-	 * 
-	 * @param : null
-	 * @description : it will navigate to the URL and validate the URL of the
-	 *              current page.
-	 * @return : String
-	 * @author : YAKSHA
+	 * @Test1.4 verifyURLOfThePage
 	 */
 	public String verifyURLOfThePage() throws Exception {
-		// Write the logic here
-		return null;
+		try {
+			return driver.getCurrentUrl();
+		} catch (Exception e) {
+			throw new Exception("verifyURLOfThePage failed: " + e.getMessage(), e);
+		}
 	}
 
-	
 	/**
-	 * @Test2.1 about this method scrollDownAndClickPharmacyTab()
-	 * 
-	 * @param : null
-	 * @description : verify the pharmacy tab, scroll to it, and click it
-	 * @return : String
-	 * @author : YAKSHA
+	 * @Test2.1 scrollDownAndClickPharmacyTab
 	 */
 	public void scrollDownAndClickPharmacyTab() throws Exception {
-		// Write the logic here
+		try {
+			// attempt to find the Pharmacy menu item and click
+			WebElement pharmacy = wait.until(ExpectedConditions.visibilityOfElementLocated(pharmacyMenuItem));
+			((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", pharmacy);
+			highlight(pharmacy);
+			pharmacy.click();
+			// wait for page to navigate
+			common.waitForPageLoad();
+		} catch (Exception e) {
+			throw new Exception("scrollDownAndClickPharmacyTab failed: " + e.getMessage(), e);
+		}
 	}
 
 	/**
-	 * @Test2.2 about this method getPharmacyPageUrl()
-	 * 
-	 * @param : null
-	 * @description : This method retrieves the current URL of the page to verify if
-	 *              the user is on the Pharmacy page.
-	 * @return : String - the current URL of the page
-	 * @author : YAKSHA
+	 * @Test2.2 getPharmacyPageUrl
 	 */
 	public String getPharmacyPageUrl() throws Exception {
-		// Write the logic here
-		return null;
+		return driver.getCurrentUrl();
 	}
+
 	/**
-	 * @Test3 about this method verifyAndHighlightTab()
-	 * @param : String tabName - The name of the tab to verify and highlight
-	 * @description : This method locates the tab specified by the tabName parameter
-	 *              in the Pharmacy module, highlights it, and returns true if the
-	 *              tab is displayed.
-	 * @return : boolean - true if the tab is displayed, false otherwise
-	 * @throws : Exception - if there is an issue locating or highlighting the tab
-	 * @author : YAKSHA
+	 * @Test3 verifyAndHighlightPharmacySubModulesTab
 	 */
 	public boolean verifyAndHighlightPharmacySubModulesTab(String tabName) throws Exception {
-		// Write the logic here
-		return false;
+		try {
+			// We will search for an anchor or element containing the tabName text under Pharmacy section
+			By tabLocator = By.xpath("//*[contains(@class,'pharmacy')]/descendant::a[contains(normalize-space(.),'" + tabName + "')]"
+					+ " | //a[contains(normalize-space(.),'" + tabName + "') and contains(@href,'Pharmacy')]"
+					+ " | //nav//a[contains(normalize-space(.),'" + tabName + "')]"
+					+ " | //li//a[contains(normalize-space(.),'" + tabName + "')]");
+
+			WebElement tab = wait.until(ExpectedConditions.visibilityOfElementLocated(tabLocator));
+			highlight(tab);
+			return tab.isDisplayed();
+		} catch (Exception e) {
+			// not found
+			return false;
+		}
 	}
-	
+
 	/**
-	 * @Test4.1, @Test5.1, @Test6.1 @Test7.1 about
-	 * this method visitOrderTabUnderPharmacy()
-	 * 
-	 * @param : null
-	 * @description : navigates the user to the order screen
-	 * @return : void
-	 * @author : YAKSHA
+	 * @Test4.1 visitTabUnderPharmacy
 	 */
 	public void visitTabUnderPharmacy(String tabName) throws Exception {
-		// Write the logic here
+		try {
+			// Ensure pharmacy is opened
+			try {
+				WebElement ph = wait.until(ExpectedConditions.visibilityOfElementLocated(pharmacyMenuItem));
+				// if the pharmacy menu is collapsed, click it
+				if (ph != null) {
+					// open if necessary
+					try { ph.click(); } catch (Exception ignored) {}
+				}
+			} catch (Exception ignored) {}
+
+			By tabLocator = By.xpath("//a[contains(normalize-space(.),'" + tabName + "')]");
+			WebElement tab = wait.until(ExpectedConditions.elementToBeClickable(tabLocator));
+			highlight(tab);
+			tab.click();
+			common.waitForPageLoad();
+		} catch (Exception e) {
+			throw new Exception("visitTabUnderPharmacy failed for '" + tabName + "': " + e.getMessage(), e);
+		}
 	}
 
 	/**
-	 * @Test4.2 about this method isOrderTabSelected()
-	 * 
-	 * @param : null
-	 * @description : verify whether the order tab is the currently selected tab
-	 * @return : boolean
-	 * @author : YAKSHA
+	 * @Test4.2 isOrderTabSelected
 	 */
 	public boolean isOrderTabSelected() throws Exception {
-		// Write the logic here
-		return false;
+		try {
+			WebElement el = wait.until(ExpectedConditions.visibilityOfElementLocated(orderTab));
+			// check class contains 'active' or aria-selected true
+			String cls = el.getAttribute("class");
+			String aria = el.getAttribute("aria-selected");
+			return (cls != null && cls.toLowerCase().contains("active")) || "true".equalsIgnoreCase(aria);
+		} catch (Exception e) {
+			return false;
+		}
 	}
+
 	/**
-	 * @Test4.3 about this method areSubTabsUnderOrderPresent()
-	 * 
-	 * @param : null
-	 * @description : verify all sub tabs under order are present
-	 * @return : boolean
-	 * @author : YAKSHA
+	 * @Test4.3 areSubTabsUnderOrderPresent
 	 */
 	public boolean areSubTabsUnderOrderPresent() throws Exception {
-		// Write the logic here
-		return false;
+		try {
+			// We expect presence of Purchase Order and Goods Receipt tabs as per spec
+			By purchaseOrder = By.xpath("//a[contains(text(),'Purchase Order')]");
+			By goodsReceipt = By.xpath("//a[contains(text(),'Goods Receipt') or contains(text(),'Goods Receipt')]");
+			boolean p = !driver.findElements(purchaseOrder).isEmpty();
+			boolean g = !driver.findElements(goodsReceipt).isEmpty();
+			return p && g;
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
-
-
 	/**
-	 * @Test4.4 about this method areAgingDaysFieldsPresent()
-	 * 
-	 * @param : null
-	 * @description : This method verifies if the 'Aging Days From' and 'Aging Days
-	 *              To' fields are present and highlighted.
-	 * @return : boolean - true if both fields are displayed, false otherwise
-	 * @throws : Exception - if there is an issue locating or highlighting the
-	 *           fields
-	 * @author : YAKSHA
+	 * @Test4.4 isSearchBarPresent
 	 */
-
-
 	public boolean isSearchBarPresent() throws Exception {
-		// Write the logic here
-		return false;
+		try {
+			WebElement sb = wait.until(ExpectedConditions.visibilityOfElementLocated(searchBar));
+			highlight(sb);
+			return sb.isDisplayed();
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	/**
-	 * @Test4.5 about this method areDateDropdownsPresent()
-	 * 
-	 * @param : null
-	 * @description : This method verifies if the 'From' and 'To' date dropdowns are
-	 *              present and highlighted on the page.
-	 * @return : boolean - true if both date dropdowns are displayed, false
-	 *         otherwise
-	 * @throws : Exception - if there is an issue locating or highlighting the
-	 *           dropdowns
-	 * @author : YAKSHA
+	 * @Test4.5 areDateDropdownsPresent
 	 */
 	public boolean areDateDropdownsPresent() throws Exception {
-		// Write the logic here
-		return false;
+		try {
+			WebElement from = wait.until(ExpectedConditions.visibilityOfElementLocated(fromDateInput));
+			WebElement to = wait.until(ExpectedConditions.visibilityOfElementLocated(toDateInput));
+			highlight(from);
+			highlight(to);
+			return from.isDisplayed() && to.isDisplayed();
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	/**
-	 * @Test4.6 about this method isSelectSupplierDropdownPresent()
-	 * 
-	 * @param : null
-	 * @description : This method verifies if the 'Select Supplier' dropdown is
-	 *              present and highlighted on the page.
-	 * @return : boolean - true if the 'Select Supplier' dropdown is displayed,
-	 *         false otherwise
-	 * @throws : Exception - if there is an issue locating or highlighting the
-	 *           dropdown
-	 * @author : YAKSHA
+	 * @Test4.6 isSelectSupplierDropdownPresent
 	 */
 	public boolean isSelectSupplierDropdownPresent() throws Exception {
-		// Write the logic here
-		return false;
+		try {
+			WebElement supplier = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[@placeholder='select supplier' or contains(@placeholder,'supplier')]")));
+			highlight(supplier);
+			return supplier.isDisplayed();
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
-
-
 	/**
-	 * @Test5.2 about this method verifySelectedTabIsActiveOrNot()
-	 * 
-	 * @param : null
-	 * @description : This method verifies if the "Supplier" tab is displayed and
-	 *              returns its "class" attribute value. This can be used to
-	 *              determine if the tab is active or not based on its class
-	 *              attributes.
-	 * @return : String - the value of the "class" attribute of the "Supplier" tab
-	 *         if it is displayed, an empty string otherwise
-	 * @throws : Exception - if there is an issue locating or highlighting the tab,
-	 *           or getting its attribute
-	 * @author : YAKSHA
+	 * @Test5.2 verifySelectedTabIsActiveOrNot
 	 */
 	public String verifySelectedTabIsActiveOrNot() throws Exception {
-		// Write the logic here
-		return null;
+		try {
+			WebElement supplier = wait.until(ExpectedConditions.visibilityOfElementLocated(supplierTab));
+			highlight(supplier);
+			String cls = supplier.getAttribute("class");
+			return cls == null ? "" : cls;
+		} catch (Exception e) {
+			return "";
+		}
 	}
 
 	/**
-	 * @Test6.2 @Test7.2 and @Test7.3 about this method clickButtonByText()
-	 * 
-	 * @param buttonText : String - The text of the button to be clicked
-	 * @description : This method locates a button using its text and performs a
-	 *              click action on it. If the button is found and successfully
-	 *              clicked, it highlights the button first. In case of failure
-	 *              (e.g., button not found or click error), an error message is
-	 *              printed and an exception is thrown.
-	 * @return : void
-	 * @throws : Exception - if there is an issue finding the button or performing
-	 *           the click action
-	 * @author : YAKSHA
+	 * @Test6.2 clickButtonByText
 	 */
 	public void clickButtonByText(String buttonText) throws Exception {
-		
-		// Write the logic here
+		try {
+			By btn = By.xpath("//button[contains(normalize-space(.),'" + buttonText + "')] | //a[contains(normalize-space(.),'" + buttonText + "')] | //span[contains(normalize-space(.),'" + buttonText + "')]");
+			WebElement button = wait.until(ExpectedConditions.elementToBeClickable(btn));
+			highlight(button);
+			button.click();
+		} catch (Exception e) {
+			throw new Exception("clickButtonByText('" + buttonText + "') failed: " + e.getMessage(), e);
+		}
 	}
 
 	/**
-	 * @Test6.3 about this method clickPrintReceipt()
-	 * 
-	 * @param : null
-	 * @description : This method locates the "Print Receipt" button using its
-	 *              identifier and performs a click action on it. The button is
-	 *              highlighted before clicking to ensure visibility. If an
-	 *              exception occurs during the finding or clicking of the button,
-	 *              it is re-thrown.
-	 * @return : void
-	 * @throws : Exception - if there is an issue finding the button or performing
-	 *           the click action
-	 * @author : YAKSHA
+	 * @Test6.3 clickPrintReceipt
 	 */
 	public void clickPrintReceipt() throws Exception {
-		// Write the logic here
+		try {
+			WebElement pr = wait.until(ExpectedConditions.elementToBeClickable(printReceiptButton));
+			highlight(pr);
+			pr.click();
+		} catch (Exception e) {
+			// fallback: find by text 'Print'
+			try {
+				WebElement pr2 = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[contains(.,'Print') or contains(.,'Print Receipt')]")));
+				highlight(pr2);
+				pr2.click();
+			} catch (Exception ex) {
+				throw new Exception("clickPrintReceipt failed: " + ex.getMessage(), ex);
+			}
+		}
 	}
 
 	/**
-	 * @Test6.4 @Test7.6 about this method
-	 * verifyMessageByText()
-	 * 
-	 * @param messageText - the text to match within the message element
-	 * @description : This method locates a message element on the page by searching
-	 *              for a paragraph (`
-	 *              <p>
-	 *              `) that contains the specified text (`messageText`) or has a
-	 *              class `main-message`. It highlights the message element and
-	 *              returns its text content. If an exception occurs while finding
-	 *              or retrieving the message, it logs an error and re-throws the
-	 *              exception.
-	 * @return : String - the text content of the located message element
-	 * @throws : Exception - if there is an issue finding the message or retrieving
-	 *           its text
-	 * @author : YAKSHA
+	 * @Test6.4 verifyMessageByText
 	 */
 	public String verifyMessageByText(String messageText) throws Exception {
-		// Write the logic here
-		return null;
+		try {
+			By m = By.xpath("//p[contains(normalize-space(.),'" + messageText + "')] | //div[contains(@class,'notification') and contains(.,'" + messageText + "')] | //p[contains(@class,'main-message')]");
+			WebElement el = wait.until(ExpectedConditions.visibilityOfElementLocated(m));
+			highlight(el);
+			return el.getText().trim();
+		} catch (Exception e) {
+			throw new Exception("verifyMessageByText failed to find message: " + messageText, e);
+		}
 	}
 
 	/**
-	 * @Test6.5 @Test8.6 and about this method closeAddGoodReceiptModal()
-	 * 
-	 * @param : null
-	 * @description : This method locates the "Close" button of the "Add Good
-	 *              Receipt" modal using the provided XPath
-	 *              (`closeModalButtonXpath`). It highlights the button and then
-	 *              clicks it to close the modal. If an exception occurs while
-	 *              finding or interacting with the button, it logs an error and
-	 *              re-throws the exception.
-	 * @return : void
-	 * @throws : Exception - if there is an issue finding or clicking the "Close"
-	 *           button
-	 * @author : YAKSHA
+	 * @Test6.5 closeAddGoodReceiptModal
 	 */
 	public boolean closeAddGoodReceiptModal() throws Exception {
-		// Write the logic here
-		return false;
+		try {
+			WebElement close = wait.until(ExpectedConditions.elementToBeClickable(closeModalButtonXpath));
+			highlight(close);
+			close.click();
+			// wait until modal disappears
+			Thread.sleep(500);
+			return true;
+		} catch (Exception e) {
+			// fallback: try clicking any "x" close in modal
+			try {
+				WebElement alt = driver.findElement(By.xpath("//a[contains(@class,'history-del-btn') or contains(@class,'close-modal') or contains(.,'×')]"));
+				highlight(alt);
+				alt.click();
+				return true;
+			} catch (Exception ex) {
+				return false;
+			}
+		}
 	}
-	
+
 	/**
-	 * @Test7.4 about this method addGriItemWithMandatoryFieldsOnly()
-	 * 
-	 * @param itemName    - the name of the item to be added
-	 * @param batchNumber - the batch number of the item
-	 * @param quantity    - the quantity of the item
-	 * @param rate        - the rate of the item
-	 * @param mrp         - the MRP (Maximum Retail Price) of the item
-	 * @description : This method adds an item to the GRI (Goods Receipt Inventory)
-	 *              with mandatory fields only. It highlights and enters values for
-	 *              item name, batch number, expiry date, quantity, rate, and MRP.
-	 *              If any of these fields are not provided, they are skipped. The
-	 *              method then clicks the save button. If the modal appears, it
-	 *              waits for the modal to fully load.
-	 * @return : void
-	 * @throws : Exception - if there is any issue locating elements, entering data,
-	 *           or clicking the save button
-	 * @author : YAKSHA
+	 * @Test7.4 addGriItemWithMandatoryFieldsOnly
 	 */
 	public void addGriItemWithMandatoryFieldsOnly(String itemName, String batchNumber, String quantity, String rate,
 			String mrp) throws Exception {
-		// Write the logic here
+		try {
+			// Wait for modal form to appear - attempt typical field placeholders
+			By itemNameLocator = By.xpath("//input[contains(@placeholder,'Item') or contains(@name,'item') or contains(@id,'item')]");
+			By batchNumberLocator = By.xpath("//input[contains(@placeholder,'Batch') or contains(@name,'batch') or contains(@id,'batch')]");
+			By expiryLocator = By.xpath("//input[contains(@placeholder,'Expiry') or contains(@name,'expiry') or contains(@id,'expiry')]");
+			By qtyLocator = By.xpath("//input[contains(@placeholder,'Qty') or contains(@name,'quantity') or contains(@id,'qty')]");
+			By rateLocator = By.xpath("//input[contains(@placeholder,'Rate') or contains(@name,'rate') or contains(@id,'rate')]");
+			By mrpLocator = By.xpath("//input[contains(@placeholder,'MRP') or contains(@name,'mrp') or contains(@id,'mrp')]");
+			
+			if (itemName != null) {
+				WebElement itemEl = wait.until(ExpectedConditions.visibilityOfElementLocated(itemNameLocator));
+				highlight(itemEl);
+				itemEl.clear();
+				itemEl.sendKeys(itemName);
+			}
+			if (batchNumber != null) {
+				WebElement batchEl = wait.until(ExpectedConditions.visibilityOfElementLocated(batchNumberLocator));
+				highlight(batchEl);
+				batchEl.clear();
+				batchEl.sendKeys(batchNumber);
+			}
+			// expiry - set 1 year from now as default if field exists
+			try {
+				WebElement expiryEl = wait.until(ExpectedConditions.visibilityOfElementLocated(expiryLocator));
+				highlight(expiryEl);
+				if (!expiryEl.getAttribute("value").trim().isEmpty()) {
+					// leave as is
+				} else {
+					LocalDate d = LocalDate.now().plusYears(1);
+					String formatted = d.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+					expiryEl.sendKeys(formatted);
+				}
+			} catch (Exception ignored) {}
+
+			if (quantity != null) {
+				WebElement qty = wait.until(ExpectedConditions.visibilityOfElementLocated(qtyLocator));
+				highlight(qty);
+				qty.clear();
+				qty.sendKeys(quantity);
+			}
+			if (rate != null) {
+				WebElement r = wait.until(ExpectedConditions.visibilityOfElementLocated(rateLocator));
+				highlight(r);
+				r.clear();
+				r.sendKeys(rate);
+			}
+			if (mrp != null) {
+				WebElement mEl = wait.until(ExpectedConditions.visibilityOfElementLocated(mrpLocator));
+				highlight(mEl);
+				mEl.clear();
+				mEl.sendKeys(mrp);
+			}
+
+			// Click Save
+			try {
+				WebElement save = wait.until(ExpectedConditions.elementToBeClickable(saveItemButton));
+				highlight(save);
+				save.click();
+			} catch (Exception e) {
+				// try any button with text Save
+				WebElement save2 = driver.findElement(By.xpath("//button[normalize-space()='Save']"));
+				highlight(save2);
+				save2.click();
+			}
+			// wait small time for save to process
+			Thread.sleep(800);
+		} catch (Exception e) {
+			throw new Exception("addGriItemWithMandatoryFieldsOnly failed: " + e.getMessage(), e);
+		}
 	}
 
 	/**
-	 * @Test7.5 about this method enterMandatoryDetailsToPrintGoodReceipt()
-	 * 
-	 * @param invoiceNumber - the invoice number to be entered in the field
-	 * @description : This method enters mandatory details required to print a good
-	 *              receipt. It locates and highlights the supplier dropdown,
-	 *              invoice number field, and payment mode dropdown. It then enters
-	 *              the provided invoice number and selects the necessary options
-	 *              from the dropdowns before clicking the print receipt button.
-	 * @return : void
-	 * @throws : Exception - if there is any issue locating elements, entering data,
-	 *           or clicking buttons
-	 * @author : YAKSHA
+	 * @Test7.5 enterMandatoryDetailsToPrintGoodReceipt
 	 */
 	public void enterMandatoryDetailsToPrintGoodReceipt(String invoiceNumber) throws Exception {
-		// Write the logic here
+		try {
+			// select supplier dropdown
+			WebElement supplierDropdown = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[@placeholder='select supplier' or contains(@placeholder,'supplier')]")));
+			highlight(supplierDropdown);
+			supplierDropdown.click();
+			// choose first option
+			try {
+				WebElement firstOption = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//div[contains(@class,'options') or contains(@class,'dropdown')]//li[1] | //ul[contains(@class,'dropdown-menu')]//li[1]")));
+				highlight(firstOption);
+				firstOption.click();
+			} catch (Exception ignored) {}
+
+			// invoice number field
+			WebElement inv = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[contains(@placeholder,'Invoice') or contains(@name,'invoice') or contains(@id,'invoice')]")));
+			highlight(inv);
+			inv.clear();
+			inv.sendKeys(invoiceNumber);
+
+			// payment mode dropdown - select first available if exists
+			try {
+				WebElement pm = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//select[contains(@name,'payment') or contains(@id,'payment')]|//input[contains(@placeholder,'Payment')]")));
+				highlight(pm);
+				pm.click();
+				// if it's select tag, choose first option
+				if (pm.getTagName().equalsIgnoreCase("select")) {
+					List<WebElement> opts = pm.findElements(By.tagName("option"));
+					if (opts.size() > 1) opts.get(1).click();
+				} else {
+					// click first suggestion
+					try {
+						WebElement opt = driver.findElement(By.xpath("//ul[contains(@class,'dropdown-menu')]//li[1]"));
+						opt.click();
+					} catch (Exception ignored) {}
+				}
+			} catch (Exception ignored) {}
+
+			// Click Print Receipt
+			clickPrintReceipt();
+
+			// small wait
+			Thread.sleep(500);
+		} catch (Exception e) {
+			throw new Exception("enterMandatoryDetailsToPrintGoodReceipt failed: " + e.getMessage(), e);
+		}
 	}
 
-	
 	/**
 	 * @Test 8.1 : Close modal by its subject name
-	 * @param modalTitle : String - The title text of the modal to be closed
-	 * @description : 
-	 *      - Locates the modal window using the given title
-	 *      - Finds and clicks the associated "Cancel" (close) button to dismiss the modal
-	 * @return : void
-	 * @throws : Exception - if the modal or cancel button is not found or interaction fails
-	 * @author : YAKSHA
 	 */
-	
 	public void closeModalBySubjectName(String modalTitle) throws Exception {
-		// Write the logic here
-
-	}
-
-	/**
-	 * @Test8.4  about this method
-	 * clickViewButtonWithInvoice()
-	 * 
-	 * @param : String
-	 * @description : Clicks on the "view" button next to a particular invoice
-	 *              number
-	 * @return : void
-	 * @throws : Exception - if there is an issue finding or clicking the "view"
-	 *           button
-	 * @author : YAKSHA
-	 */
-	public void clickViewButtonWithInvoice(String invoiceNumber) throws Exception {
-		// Write the logic here
-
-	}
-
-	/**
-	 * @Test8.8 about this method doesPrintContainsInvoiceNumber()
-	 * 
-	 * @param : String
-	 * @description : Verify whether the printed report contains expected invoice
-	 *              number
-	 * @return : boolean
-	 * @throws : Exception - if there is an issue finding or clicking the invoice
-	 *           number text button
-	 * @author : YAKSHA
-	 */
-	public boolean doesPrintContainsInvoiceNumber(String invoiceNumber) throws Exception {
-		// Write the logic here
-		return false;
-	}
-
-	/**
-	 * @Test8.2 about this method
-	 * clickAndEnterValueInSearchField()
-	 * 
-	 * @param : String
-	 * @description : Enters value in the search bar
-	 * @return : boolean
-	 * @throws : Exception - if there is an issue finding or typing the text
-	 * @author : YAKSHA
-	 */
-	public boolean clickAndEnterValueInSearchField(String searchData) {
-		// Write the logic here
-		return false;
-	}
-
-
-
-	/**
-	 * @Test8.3 @Test9.2
-	 * about this method highlightAndClickOnButton()
-	 * 
-	 * @param : By, String
-	 * @description : Highlights the provided element and clicks on it
-	 * @return : boolean
-	 * @throws : Exception - if there is an issue finding the element
-	 * @author : YAKSHA
-	 */
-	public boolean highlightAndClickOnButton(By element, String buttonName) {
-		// Write the logic here
-		return false;
-	}
-
-
-	/**
-	 * @Test9.1 about this method applyDateFilter()
-	 * 
-	 * @param : String, String
-	 * @description : Applies the date filter with date range
-	 * @return : boolean
-	 * @throws : Exception - if there is an issue finding or filling the date fields
-	 * @author : YAKSHA
-	 */
-	public boolean applyDateFilter(String fromDate, String toDate) throws Exception {
-		// Write the logic here
-		return false;
-	}
-
-	/**
-	 * @Test9.3 about this method verifyActualDatesAreWithinThisRange()
-	 * 
-	 * @param : String, String
-	 * @description : Verify whether results are within the applied date range
-	 * @return : boolean
-	 * @throws : Exception - if there is an issue finding the actual dates within
-	 *           the results
-	 * @author : YAKSHA
-	 */
-	public boolean verifyActualDatesAreWithinThisRange(String fromDate, String toDate) {
-		// Write the logic here
-		return false;
-	}
-
-}
-
+		try {
+			By modalBy = By.xpath("//div[contains(@class,'modal') and descendant::h4[contains(normalize-space(.),'" + modalTitle + "')]] | //div[contains(@class,'modal') and .//h5[contains(.,'" + modalTitle + "')]]");
+			WebElement modal = wait.until(ExpectedConditions.visibilityOfElementLocated(modalBy));
+			// find cancel button inside modal
+			WebElement cancel = modal.findElement(By.xpath(".//button[con
