@@ -1,7 +1,6 @@
 package coreUtilities.testbase;
 
 import java.time.Duration;
-import java.util.Map;
 
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -35,30 +34,17 @@ public class testBase {
         }
     }
 
-    public void initialize(Map<String, String> configData) throws Exception {
-        String url = configData.get("url");
-        if (url != null && !url.isEmpty()) {
-            driver.get(url);
-            System.out.println("✅ Navigated to URL: " + url);
-        } else {
-            throw new Exception("URL is missing in config data.");
-        }
-    }
-
     @AfterClass(alwaysRun = true)
     public void tearDown() {
-        browserTearDown();
-    }
-
-    public void browserTearDown() {
         try {
             if (driver != null) {
-                System.out.println("🧹 Closing browser...");
+                System.out.println("🧹 Closing the browser...");
                 driver.quit();
                 System.out.println("✅ Browser closed successfully.");
             }
         } catch (Exception e) {
-            System.err.println("❌ Error while closing browser: " + e.getMessage());
+            System.err.println("❌ Error while closing the browser: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
