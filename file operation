@@ -1,118 +1,39 @@
 package coreUtilities.utils;
 
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Properties;
-
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DateUtil;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
-import com.codoid.products.exception.FilloException;
-import com.codoid.products.fillo.Connection;
-import com.codoid.products.fillo.Fillo;
-
-/**
- * Utility class for file-related operations like reading Excel, JSON, or property files.
- */
 public class FileOperations {
-	
-	public JSONParser jsonParser;
-	public JSONObject jsonObject;
-	public Fillo fillo;
-	public Connection connection;
-	public Properties properties;
 
-	/**
-	 * Reads an Excel sheet and returns its data as a key-value {@link Map}.
-	 * The first column will be treated as the key and the second as the value.
-	 *
-	 * Example:
-	 * | Key          | Value          |
-	 * |--------------|----------------|
-	 * | username     | admin          |
-	 * | password     | pass123        |
-	 *
-	 * @param excelFilePath - path to the Excel file (e.g., "testdata/Expected_Data.xlsx")
-	 * @param sheetName     - name of the sheet to read (e.g., "Pharmacy")
-	 * @return Map<String, String> containing key-value pairs
-	 * @throws FilloException
-	 */
-	public Map<String, String> readExcelPOI(String excelFilePath, String sheetName) throws FilloException {
-		Map<String, String> dataMap = new HashMap<>();
+    public Map<String, String> readExcelPOI(String excelFilePath, String sheetName) {
+        Map<String, String> dataMap = new HashMap<>();
+        try (FileInputStream fis = new FileInputStream(excelFilePath);
+             Workbook workbook = new XSSFWorkbook(fis)) {
 
-		try (FileInputStream fis = new FileInputStream(excelFilePath);
-			 Workbook workbook = new XSSFWorkbook(fis)) {
+            Sheet sheet = workbook.getSheet(sheetName);
+            if (sheet == null) {
+                throw new Exception("Sheet not found: " + sheetName);
+            }
 
-			Sheet sheet = workbook.getSheet(sheetName);
-			if (sheet == null) {
-				throw new IllegalArgumentException("Sheet '" + sheetName + "' not found in Excel file.");
-			}
+            for (Row row : sheet) {
+                Cell keyCell = row.getCell(0);
+                Cell valueCell = row.getCell(1);
+                if (keyCell != null && valueCell != null) {
+                    keyCell.setCellType(CellType.STRING);
+                    valueCell.setCellType(CellType.STRING);
+                    dataMap.put(keyCell.getStringCellValue().trim(), valueCell.getStringCellValue().trim());
+                }
+            }
 
-			Iterator<Row> rows = sheet.iterator();
-			while (rows.hasNext()) {
-				Row row = rows.next();
-				if (row.getRowNum() == 0) {
-					continue; // skip header if any
-				}
-
-				Cell keyCell = row.getCell(0);
-				Cell valueCell = row.getCell(1);
-
-				if (keyCell == null || valueCell == null)
-					continue;
-
-				String key = getCellValueAsString(keyCell);
-				String value = getCellValueAsString(valueCell);
-				dataMap.put(key, value);
-			}
-		} catch (IOException e) {
-			System.err.println("Error reading Excel file: " + e.getMessage());
-		}
-
-		return dataMap;
-	}
-
-	/**
-	 * Converts any Excel cell value into a clean String representation.
-	 */
-	private String getCellValueAsString(Cell cell) {
-		switch (cell.getCellType()) {
-			case STRING:
-				return cell.getStringCellValue().trim();
-
-			case NUMERIC:
-				if (DateUtil.isCellDateFormatted(cell)) {
-					return cell.getDateCellValue().toString();
-				} else {
-					double numericValue = cell.getNumericCellValue();
-					if (numericValue == (long) numericValue)
-						return String.valueOf((long) numericValue);
-					else
-						return String.valueOf(numericValue);
-				}
-
-			case BOOLEAN:
-				return String.valueOf(cell.getBooleanCellValue());
-
-			case FORMULA:
-				try {
-					return cell.getStringCellValue();
-				} catch (IllegalStateException e) {
-					return String.valueOf(cell.getNumericCellValue());
-				}
-
-			case BLANK:
-			default:
-				return "";
-		}
-	}
+            workbook.close();
+            System.out.println("✅ Excel data loaded from: " + excelFilePath);
+        } catch (Exception e) {
+            System.err.println("❌ Error reading Excel file: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return dataMap;
+    }
 }
