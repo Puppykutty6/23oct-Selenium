@@ -1,280 +1,63 @@
 package pages;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Map;
+import org.openqa.selenium.*;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.Select;
 
-import org.openqa.selenium.Alert;
-import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.Keys;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
+public class pharmacy_Pages {
 
-public class pharmacy_Pages extends StartupPage {
+    WebDriver driver;
 
-	String pageName = this.getClass().getSimpleName();
-	WebDriverWait wait;
+    public pharmacy_Pages(WebDriver driver) {
+        this.driver = driver;
+    }
 
-	public pharmacy_Pages(WebDriver driver) {
-		super(driver);
-		wait = new WebDriverWait(driver, java.time.Duration.ofSeconds(10));
-	}
+    public boolean loginToHealthAppByGivenValidCredetial(Map<String, String> data) throws Exception {
+        try {
+            driver.get(data.get("url"));
+            driver.findElement(By.id("UserName")).sendKeys(data.get("username"));
+            driver.findElement(By.id("Password")).sendKeys(data.get("password"));
+            driver.findElement(By.xpath("//button[text()='Sign In']")).click();
+            Thread.sleep(3000);
+            return driver.getTitle().contains("Danphe");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
-	// ---------------- LOCATORS ----------------
+    public String verifyTitleAndURLOfTheHomePage() {
+        String title = driver.getTitle();
+        String url = driver.getCurrentUrl();
+        System.out.println("🏠 Title: " + title);
+        System.out.println("🌐 URL: " + url);
+        return title + " | " + url;
+    }
 
-	By usernameField = By.id("Username");
-	By passwordField = By.id("Password");
-	By signInButton = By.xpath("//button[contains(text(),'Sign In') or @type='submit']");
-	By homeLogo = By.xpath("//img[contains(@src,'logo') or contains(@alt,'logo')]");
-	By pharmacyTab = By.xpath("//a[contains(.,'Pharmacy')]");
-	By orderTab = By.xpath("//a[contains(.,'Order')]");
-	By supplierTab = By.xpath("//a[contains(.,'Supplier')]");
-	By goodsReceiptTab = By.xpath("//a[contains(.,'Goods Receipt')]");
-	By searchBar = By.xpath("//input[contains(@placeholder,'Search') or @type='search']");
-	By supplierDropdown = By.xpath("//select[contains(@id,'Supplier') or contains(@formcontrolname,'Supplier')]");
-	By fromDate = By.xpath("//input[contains(@placeholder,'From')]");
-	By toDate = By.xpath("//input[contains(@placeholder,'To')]");
-	By printReceiptBtn = By.xpath("//button[contains(.,'Print Receipt')]");
-	By closeModalBtn = By.xpath("//button[contains(.,'Close') or contains(.,'Cancel')]");
+    public void openPharmacyModule() {
+        driver.findElement(By.xpath("//a[contains(text(),'Pharmacy')]")).click();
+        System.out.println("🧭 Navigated to Pharmacy module");
+    }
 
-	// -------------- TEST 1.1: LOGIN ----------------
-	public boolean loginToHealthAppByGivenValidCredetial(Map<String, String> expectedData) throws Exception {
-		try {
-			driver.findElement(usernameField).sendKeys(expectedData.get("username"));
-			driver.findElement(passwordField).sendKeys(expectedData.get("password"));
-			driver.findElement(signInButton).click();
-			wait.until(ExpectedConditions.titleContains("DanpheHealth"));
-			return true;
-		} catch (Exception e) {
-			e.printStackTrace();
-			return false;
-		}
-	}
+    public void highlightSubModules() throws Exception {
+        WebElement subModule = driver.findElement(By.xpath("//a[contains(text(),'Orders')]"));
+        new Actions(driver).moveToElement(subModule).perform();
+        Thread.sleep(1000);
+        System.out.println("✨ Highlighted Orders submodule");
+    }
 
-	// -------------- TEST 1.2: HOME PAGE LOGO ----------------
-	public void clickOnHomePageLogo() {
-		WebElement logo = driver.findElement(homeLogo);
-		if (logo.isDisplayed()) {
-			highlightElement(logo);
-			logo.click();
-		}
-	}
+    public void openOrderTab() {
+        driver.findElement(By.xpath("//a[contains(text(),'Orders')]")).click();
+        System.out.println("📦 Opened Orders tab");
+    }
 
-	// -------------- TEST 1.3: VERIFY TITLE ----------------
-	public String verifyTitleOfThePage() throws Exception {
-		return driver.getTitle();
-	}
-
-	// -------------- TEST 1.4: VERIFY URL ----------------
-	public String verifyURLOfThePage() throws Exception {
-		return driver.getCurrentUrl();
-	}
-
-	// -------------- TEST 2.1: CLICK PHARMACY TAB ----------------
-	public void scrollDownAndClickPharmacyTab() throws Exception {
-		WebElement tab = wait.until(ExpectedConditions.elementToBeClickable(pharmacyTab));
-		((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", tab);
-		highlightElement(tab);
-		tab.click();
-		Thread.sleep(2000);
-	}
-
-	// -------------- TEST 2.2: GET PHARMACY PAGE URL ----------------
-	public String getPharmacyPageUrl() throws Exception {
-		return driver.getCurrentUrl();
-	}
-
-	// -------------- TEST 3: VERIFY SUBMODULES ----------------
-	public boolean verifyAndHighlightPharmacySubModulesTab(String tabName) throws Exception {
-		WebElement tab = driver.findElement(By.xpath("//a[contains(.,'" + tabName + "')]"));
-		highlightElement(tab);
-		return tab.isDisplayed();
-	}
-
-	// -------------- TEST 4.1, 5.1, 6.1, 7.1: VISIT TAB ----------------
-	public void visitTabUnderPharmacy(String tabName) throws Exception {
-		WebElement tab = driver.findElement(By.xpath("//a[contains(.,'" + tabName + "')]"));
-		highlightElement(tab);
-		tab.click();
-		Thread.sleep(1500);
-	}
-
-	// -------------- TEST 4.2: IS ORDER TAB SELECTED ----------------
-	public boolean isOrderTabSelected() throws Exception {
-		WebElement tab = driver.findElement(orderTab);
-		String classAttr = tab.getAttribute("class");
-		return classAttr.contains("active") || tab.isDisplayed();
-	}
-
-	// -------------- TEST 4.3: VERIFY ORDER SUBTABS ----------------
-	public boolean areSubTabsUnderOrderPresent() throws Exception {
-		WebElement purchase = driver.findElement(By.xpath("//a[contains(.,'Purchase Order')]"));
-		WebElement goods = driver.findElement(By.xpath("//a[contains(.,'Goods Receipt')]"));
-		return purchase.isDisplayed() && goods.isDisplayed();
-	}
-
-	// -------------- TEST 4.4: SEARCH BAR ----------------
-	public boolean isSearchBarPresent() throws Exception {
-		WebElement s = driver.findElement(searchBar);
-		highlightElement(s);
-		return s.isDisplayed();
-	}
-
-	// -------------- TEST 4.5: DATE DROPDOWNS ----------------
-	public boolean areDateDropdownsPresent() throws Exception {
-		WebElement f = driver.findElement(fromDate);
-		WebElement t = driver.findElement(toDate);
-		highlightElement(f);
-		highlightElement(t);
-		return f.isDisplayed() && t.isDisplayed();
-	}
-
-	// -------------- TEST 4.6: SUPPLIER DROPDOWN ----------------
-	public boolean isSelectSupplierDropdownPresent() throws Exception {
-		WebElement d = driver.findElement(supplierDropdown);
-		highlightElement(d);
-		return d.isDisplayed();
-	}
-
-	// -------------- TEST 5.2: SUPPLIER TAB ACTIVE ----------------
-	public String verifySelectedTabIsActiveOrNot() throws Exception {
-		WebElement s = driver.findElement(supplierTab);
-		return s.getAttribute("class");
-	}
-
-	// -------------- TEST 6.2, 7.2, 7.3: CLICK BUTTON BY TEXT ----------------
-	public void clickButtonByText(String buttonText) throws Exception {
-		WebElement btn = driver.findElement(By.xpath("//button[contains(.,'" + buttonText + "')]"));
-		highlightElement(btn);
-		btn.click();
-		Thread.sleep(1000);
-	}
-
-	// -------------- TEST 6.3: PRINT RECEIPT ----------------
-	public void clickPrintReceipt() throws Exception {
-		WebElement btn = driver.findElement(printReceiptBtn);
-		highlightElement(btn);
-		btn.click();
-		Thread.sleep(1000);
-	}
-
-	// -------------- TEST 6.4: VERIFY MESSAGE ----------------
-	public String verifyMessageByText(String messageText) throws Exception {
-		WebElement msg = driver.findElement(By.xpath("//p[contains(.,'" + messageText + "')]"));
-		highlightElement(msg);
-		return msg.getText();
-	}
-
-	// -------------- TEST 6.5, 8.6: CLOSE ADD RECEIPT MODAL ----------------
-	public boolean closeAddGoodReceiptModal() throws Exception {
-		WebElement close = driver.findElement(closeModalBtn);
-		highlightElement(close);
-		close.click();
-		return true;
-	}
-
-	// -------------- TEST 7.4: ADD ITEM ----------------
-	public void addGriItemWithMandatoryFieldsOnly(String itemName, String batchNumber, String quantity, String rate,
-			String mrp) throws Exception {
-		driver.findElement(By.xpath("//button[contains(.,'Add New Item')]")).click();
-		Thread.sleep(1000);
-
-		driver.findElement(By.xpath("//input[contains(@placeholder,'Item Name')]")).sendKeys(itemName);
-		driver.findElement(By.xpath("//input[contains(@placeholder,'Batch')]")).sendKeys(batchNumber);
-		driver.findElement(By.xpath("//input[contains(@placeholder,'Quantity')]")).sendKeys(quantity);
-		driver.findElement(By.xpath("//input[contains(@placeholder,'Rate')]")).sendKeys(rate);
-		driver.findElement(By.xpath("//input[contains(@placeholder,'MRP')]")).sendKeys(mrp);
-		driver.findElement(By.xpath("//button[contains(.,'Save')]")).click();
-		Thread.sleep(2000);
-	}
-
-	// -------------- TEST 7.5: ENTER DETAILS TO PRINT RECEIPT ----------------
-	public void enterMandatoryDetailsToPrintGoodReceipt(String invoiceNumber) throws Exception {
-		WebElement supplier = driver.findElement(supplierDropdown);
-		highlightElement(supplier);
-		supplier.sendKeys(Keys.ARROW_DOWN);
-		supplier.sendKeys(Keys.ENTER);
-
-		WebElement invoice = driver.findElement(By.xpath("//input[contains(@placeholder,'Invoice')]"));
-		highlightElement(invoice);
-		invoice.sendKeys(invoiceNumber);
-
-		clickPrintReceipt();
-	}
-
-	// -------------- TEST 8.1: CLOSE MODAL BY TITLE ----------------
-	public void closeModalBySubjectName(String modalTitle) throws Exception {
-		WebElement close = driver.findElement(
-				By.xpath("//div[contains(@class,'modal')]//h4[contains(.,'" + modalTitle + "')]/following::button[contains(.,'Cancel')][1]"));
-		highlightElement(close);
-		close.click();
-	}
-
-	// -------------- TEST 8.4: VIEW BUTTON ----------------
-	public void clickViewButtonWithInvoice(String invoiceNumber) throws Exception {
-		WebElement viewBtn = driver.findElement(By.xpath("//td[contains(.,'" + invoiceNumber
-				+ "')]/following-sibling::td//button[contains(.,'View')]"));
-		highlightElement(viewBtn);
-		viewBtn.click();
-	}
-
-	// -------------- TEST 8.8: PRINT VERIFY ----------------
-	public boolean doesPrintContainsInvoiceNumber(String invoiceNumber) throws Exception {
-		return driver.getPageSource().contains(invoiceNumber);
-	}
-
-	// -------------- TEST 8.2: SEARCH FIELD ----------------
-	public boolean clickAndEnterValueInSearchField(String searchData) {
-		WebElement search = driver.findElement(searchBar);
-		search.click();
-		search.sendKeys(searchData);
-		return true;
-	}
-
-	// -------------- TEST 8.3 / 9.2: CLICK GENERIC BUTTON ----------------
-	public boolean highlightAndClickOnButton(By element, String buttonName) {
-		try {
-			WebElement btn = driver.findElement(element);
-			highlightElement(btn);
-			btn.click();
-			return true;
-		} catch (Exception e) {
-			e.printStackTrace();
-			return false;
-		}
-	}
-
-	// -------------- TEST 9.1: APPLY DATE FILTER ----------------
-	public boolean applyDateFilter(String from, String to) throws Exception {
-		driver.findElement(fromDate).sendKeys(from);
-		driver.findElement(toDate).sendKeys(to);
-		driver.findElement(By.xpath("//button[contains(.,'Ok') or contains(.,'Apply')]")).click();
-		return true;
-	}
-
-	// -------------- TEST 9.3: VERIFY DATES WITHIN RANGE ----------------
-	public boolean verifyActualDatesAreWithinThisRange(String fromDateStr, String toDateStr) {
-		List<WebElement> dateCells = driver.findElements(By.xpath("//table//td[contains(@class,'date')]"));
-		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-		LocalDate from = LocalDate.parse(fromDateStr, formatter);
-		LocalDate to = LocalDate.parse(toDateStr, formatter);
-
-		for (WebElement cell : dateCells) {
-			String dateText = cell.getText().trim();
-			LocalDate actual = LocalDate.parse(dateText, formatter);
-			if (actual.isBefore(from) || actual.isAfter(to))
-				return false;
-		}
-		return true;
-	}
-
-	// -------------- SUPPORT METHOD ----------------
-	private void highlightElement(WebElement element) {
-		JavascriptExecutor js = (JavascriptExecutor) driver;
-		js.executeScript("arguments[0].style.border='3px solid red'", element);
-	}
+    public void addNewGoodReceipt(Map<String, String> data) throws Exception {
+        driver.findElement(By.xpath("//button[contains(text(),'Add Goods Receipt')]")).click();
+        new Select(driver.findElement(By.id("Supplier"))).selectByVisibleText(data.get("supplier"));
+        driver.findElement(By.id("InvoiceNo")).sendKeys(data.get("invoice"));
+        driver.findElement(By.xpath("//button[text()='Save']")).click();
+        Thread.sleep(2000);
+        System.out.println("✅ Added new goods receipt");
+    }
 }
