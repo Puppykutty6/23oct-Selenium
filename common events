@@ -1,69 +1,26 @@
 package coreUtilities.utils;
 
-import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
 
-/**
- * Common reusable Selenium actions for navigation and element interaction.
- */
-public class CommonEvents {
+public class CommonEvents 
+{
+	public WebDriver driver;
 
-    public WebDriver driver;
+	public CommonEvents(WebDriver driver) 
+	{
+		this.driver = driver;
+	}
 
-    public CommonEvents(WebDriver driver) {
-        this.driver = driver;
-    }
-
-    /**
-     * Navigates to the given URL using the driver and waits for the page to load completely.
-     *
-     * @param url The URL to open in the browser.
-     * @return CommonEvents instance for chaining.
-     * @throws Exception if navigation fails.
-     */
-    public CommonEvents navigateTo(String url) throws Exception {
-        try {
-            driver.get(url);
-            waitForPageLoad();
-            System.out.println("✅ Navigated to: " + url);
-        } catch (Exception e) {
-            System.err.println("❌ Failed to navigate to: " + url + " | Error: " + e.getMessage());
-            throw e;
-        }
-        return this;
-    }
-
-    /**
-     * Highlights a given WebElement using JavaScript for better visibility during tests.
-     *
-     * @param element The WebElement to highlight.
-     */
-    public void highlightElement(WebElement element) {
-        try {
-            JavascriptExecutor js = (JavascriptExecutor) driver;
-            js.executeScript("arguments[0].style.border='3px solid magenta'", element);
-            Thread.sleep(200);
-            js.executeScript("arguments[0].style.border=''", element);
-        } catch (Exception e) {
-            System.err.println("⚠️ Unable to highlight element: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Waits for the browser page to load completely by checking the document.readyState.
-     */
-    private void waitForPageLoad() {
-        try {
-            JavascriptExecutor js = (JavascriptExecutor) driver;
-            for (int i = 0; i < 20; i++) {
-                String state = js.executeScript("return document.readyState").toString();
-                if (state.equals("complete"))
-                    break;
-                Thread.sleep(500);
-            }
-        } catch (Exception e) {
-            System.err.println("⚠️ Error while waiting for page load: " + e.getMessage());
-        }
-    }
+	public CommonEvents navigateTo(String url) throws Exception
+	{
+		try {
+			driver.get(url);
+			Thread.sleep(2000);
+			System.out.println("✅ Navigated to URL: " + url);
+		} catch (Exception e) {
+			System.err.println("❌ Failed to navigate to URL: " + url);
+			e.printStackTrace();
+		}
+		return this;
+	}
 }
