@@ -1,6 +1,7 @@
 package coreUtilities.utils;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.poi.ss.usermodel.*;
@@ -8,32 +9,30 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class FileOperations {
 
-    public Map<String, String> readExcelPOI(String excelFilePath, String sheetName) {
+    public static Map<String, String> readExcelData(String filePath, String sheetName) {
         Map<String, String> dataMap = new HashMap<>();
-        try (FileInputStream fis = new FileInputStream(excelFilePath);
+        try (FileInputStream fis = new FileInputStream(filePath);
              Workbook workbook = new XSSFWorkbook(fis)) {
 
             Sheet sheet = workbook.getSheet(sheetName);
-            if (sheet == null) {
-                throw new Exception("Sheet not found: " + sheetName);
-            }
-
-            for (Row row : sheet) {
-                Cell keyCell = row.getCell(0);
-                Cell valueCell = row.getCell(1);
-                if (keyCell != null && valueCell != null) {
-                    keyCell.setCellType(CellType.STRING);
-                    valueCell.setCellType(CellType.STRING);
-                    dataMap.put(keyCell.getStringCellValue().trim(), valueCell.getStringCellValue().trim());
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row != null) {
+                    Cell keyCell = row.getCell(0);
+                    Cell valueCell = row.getCell(1);
+                    if (keyCell != null && valueCell != null) {
+                        dataMap.put(keyCell.getStringCellValue(), valueCell.getStringCellValue());
+                    }
                 }
             }
-
-            workbook.close();
-            System.out.println("✅ Excel data loaded from: " + excelFilePath);
-        } catch (Exception e) {
-            System.err.println("❌ Error reading Excel file: " + e.getMessage());
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return dataMap;
+    }
+
+    public static String getUrlFromConfig(String configFilePath, String sheetName, String key) {
+        Map<String, String> data = readExcelData(configFilePath, sheetName);
+        return data.getOrDefault(key, "");
     }
 }
