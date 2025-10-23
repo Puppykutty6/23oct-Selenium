@@ -1,26 +1,50 @@
 package coreUtilities.utils;
 
-import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
-public class CommonEvents 
-{
-	public WebDriver driver;
+import java.time.Duration;
 
-	public CommonEvents(WebDriver driver) 
-	{
-		this.driver = driver;
-	}
+public class CommonEvents {
 
-	public CommonEvents navigateTo(String url) throws Exception
-	{
-		try {
-			driver.get(url);
-			Thread.sleep(2000);
-			System.out.println("✅ Navigated to URL: " + url);
-		} catch (Exception e) {
-			System.err.println("❌ Failed to navigate to URL: " + url);
-			e.printStackTrace();
-		}
-		return this;
-	}
+    WebDriver driver;
+    WebDriverWait wait;
+
+    public CommonEvents(WebDriver driver) {
+        this.driver = driver;
+        this.wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+    }
+
+    public void clickElement(By locator) {
+        wait.until(ExpectedConditions.elementToBeClickable(locator)).click();
+    }
+
+    public void enterText(By locator, String text) {
+        WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+        element.clear();
+        element.sendKeys(text);
+    }
+
+    public String getElementText(By locator) {
+        return wait.until(ExpectedConditions.visibilityOfElementLocated(locator)).getText();
+    }
+
+    public boolean isElementDisplayed(By locator) {
+        try {
+            return wait.until(ExpectedConditions.visibilityOfElementLocated(locator)).isDisplayed();
+        } catch (TimeoutException e) {
+            return false;
+        }
+    }
+
+    public void handleAlertIfPresent() {
+        try {
+            wait.until(ExpectedConditions.alertIsPresent());
+            Alert alert = driver.switchTo().alert();
+            alert.accept();
+        } catch (Exception e) {
+            // no alert
+        }
+    }
 }
