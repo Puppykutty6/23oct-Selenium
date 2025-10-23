@@ -1,0 +1,54 @@
+[RemoteTestNG] detected TestNG version 7.8.0
+Directory already exists: C:\Users\Administrator\Desktop\arunkumarannaduraicognizant.com_1761200376977\TestReport
+ExtentReport Path for WINDOWS: C:\Users\Administrator\Desktop\arunkumarannaduraicognizant.com_1761200376977\TestReport
+
+Extent Reports Version 3 Test Suite started!
+verifyTitleAndURLOfTheHomePage started!
+verifyTitleAndURLOfTheHomePage skipped!
+
+[1;94m=>[1;93mTest For : [1;93mTitle [1;93mAnd [1;93mU [1;93mR [1;93mL [1;93mOf [1;93mThe [1;93mHome [1;93mPage  : [1;91mFAILED[0m
+getPharmacyPageUrl started!
+getPharmacyPageUrl skipped!
+
+[1;94m=>[1;93mTest For : [1;93mPharmacy [1;93mPage [1;93mUrl  : [1;91mFAILED[0m
+verifyAndHighlightPharmacySubModulesTab started!
+verifyAndHighlightPharmacySubModulesTab skipped!
+
+[1;94m=>[1;93mTest For : [1;93mAnd [1;93mHighlight [1;93mPharmacy [1;93mSub [1;93mModules [1;93mTab  : [1;91mFAILED[0m
+verifyElementsUnderOrderTab started!
+verifyElementsUnderOrderTab skipped!
+
+[1;94m=>[1;93mTest For : [1;93mElements [1;93mUnder [1;93mOrder [1;93mTab  : [1;91mFAILED[0m
+verifyNavigationToAnotherSubModuleAfterOpeningTheOrderSection started!
+verifyNavigationToAnotherSubModuleAfterOpeningTheOrderSection skipped!
+
+[1;94m=>[1;93mTest For : [1;93mNavigation [1;93mTo [1;93mAnother [1;93mSub [1;93mModule [1;93mAfter [1;93mOpening [1;93mThe [1;93mOrder [1;93mSection  : [1;91mFAILED[0m
+verifyErrorMessageOnPrintingGoodReceiptWithoutDetails started!
+verifyErrorMessageOnPrintingGoodReceiptWithoutDetails skipped!
+
+[1;94m=>[1;93mTest For : [1;93mError [1;93mMessage [1;93mOn [1;93mPrinting [1;93mGood [1;93mReceipt [1;93mWithout [1;93mDetails  : [1;91mFAILED[0m
+addNewGoodReceipt started!
+addNewGoodReceipt skipped!
+
+[1;94m=>[1;93mTest For : [1;93mNew [1;93mGood [1;93mReceipt  : [1;91mFAILED[0m
+verifyAddedGoodReceipt started!
+verifyAddedGoodReceipt skipped!
+
+[1;94m=>[1;93mTest For : [1;93mAdded [1;93mGood [1;93mReceipt  : [1;91mFAILED[0m
+verifyDataIsAsPerAppliedDateFilter started!
+verifyDataIsAsPerAppliedDateFilter skipped!
+
+[1;94m=>[1;93mTest For : [1;93mData [1;93mIs [1;93mAs [1;93mPer [1;93mApplied [1;93mDate [1;93mFilter  : [1;91mFAILED[0m
+before closing the browser
+before closing the browser
+Extent Reports Version 3  Test Suite is ending!
+log4j:WARN No appenders could be found for logger (freemarker.cache).
+log4j:WARN Please initialize the log4j system properly.
+log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
+
+===============================================
+Suite
+Total tests run: 9, Passes: 0, Failures: 0, Skips: 9
+Configuration Failures: 2, Skips: 0
+===============================================
+
