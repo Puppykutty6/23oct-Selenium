@@ -1,50 +1,23 @@
 package coreUtilities.utils;
 
-import org.openqa.selenium.*;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.WebDriver;
 
-import java.time.Duration;
 
-public class CommonEvents {
+public class CommonEvents 
+{
+	public WebDriver driver;
 
-    WebDriver driver;
-    WebDriverWait wait;
+	public CommonEvents(WebDriver driver) 
+	{
+		this.driver=driver;
+	}
 
-    public CommonEvents(WebDriver driver) {
-        this.driver = driver;
-        this.wait = new WebDriverWait(driver, Duration.ofSeconds(15));
-    }
-
-    public void clickElement(By locator) {
-        wait.until(ExpectedConditions.elementToBeClickable(locator)).click();
-    }
-
-    public void enterText(By locator, String text) {
-        WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
-        element.clear();
-        element.sendKeys(text);
-    }
-
-    public String getElementText(By locator) {
-        return wait.until(ExpectedConditions.visibilityOfElementLocated(locator)).getText();
-    }
-
-    public boolean isElementDisplayed(By locator) {
-        try {
-            return wait.until(ExpectedConditions.visibilityOfElementLocated(locator)).isDisplayed();
-        } catch (TimeoutException e) {
-            return false;
-        }
-    }
-
-    public void handleAlertIfPresent() {
-        try {
-            wait.until(ExpectedConditions.alertIsPresent());
-            Alert alert = driver.switchTo().alert();
-            alert.accept();
-        } catch (Exception e) {
-            // no alert
-        }
-    }
+	
+	public CommonEvents navigateTo(String url) throws Exception
+	{
+		
+		return null;
+	}
+	
+	
 }
